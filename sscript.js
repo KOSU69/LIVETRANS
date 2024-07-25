@@ -68,7 +68,6 @@ document.addEventListener("DOMContentLoaded", () => {
     let finalTranscript = '';
     let audioVisualizer = null;
 
-    
     if ('SpeechRecognition' in window) {
         recognition = new SpeechRecognition();
     } else if ('webkitSpeechRecognition' in window) {
@@ -91,7 +90,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 interimTranscript += event.results[i][0].transcript;
             }
         }
-        transcriptArea.value = finalTranscript;
+        transcriptArea.value = finalTranscript + interimTranscript;
     };
 
     recognition.onstart = () => {
@@ -101,18 +100,24 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     recognition.onend = () => {
-        isRecording = false;
-        startBtn.disabled = false;
-        stopBtn.disabled = true;
-        downloadBtn.disabled = finalTranscript.length === 0;
-        if (audioVisualizer) {
-            audioVisualizer.stop();
+        if (isRecording) {
+            recognition.start(); // Restart recognition if it stops unexpectedly
+        } else {
+            if (audioVisualizer) {
+                audioVisualizer.stop();
+            }
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            downloadBtn.disabled = finalTranscript.length === 0;
         }
     };
 
     startBtn.addEventListener("click", () => {
         if (!isRecording) {
+            finalTranscript = ''; // Reset transcript on start
+            transcriptArea.value = ''; // Clear transcript area
             recognition.start();
+            isRecording = true;
             const audioContext = new AudioContext();
             const dataMap = { 0: 15, 1: 10, 2: 8, 3: 9, 4: 6, 5: 5, 6: 2, 7: 1, 8: 0, 9: 4, 10: 3, 11: 7, 12: 11, 13: 12, 14: 13, 15: 14 };
             const processFrame = (data) => {
@@ -130,6 +135,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     stopBtn.addEventListener("click", () => {
         if (isRecording) {
+            isRecording = false; // Ensure this is set before stopping recognition
             recognition.stop();
         }
     });
@@ -144,5 +150,41 @@ document.addEventListener("DOMContentLoaded", () => {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+
+        // const { jsPDF } = window.jspdf;
+        // const doc = new jsPDF();
+        // doc.text(finalTranscript, 10, 10);
+        // doc.save('transcript.pdf');
+
+        // const { Document, Packer, Paragraph, TextRun } = window.docx;
+
+        // // Create a new Document
+        // const doc = new Document({
+        //     sections: [{
+        //         properties: {},
+        //         children: [
+        //             new Paragraph({
+        //                 children: [
+        //                     new TextRun(finalTranscript)
+        //                 ]
+        //             })
+        //         ]
+        //     }]
+        // });
+
+        // // Create a blob from the document
+        // const blob = await Packer.toBlob(doc);
+
+        // // Create a link element for downloading
+        // const url = URL.createObjectURL(blob);
+        // const a = document.createElement('a');
+        // a.href = url;
+        // a.download = 'transcript.docx';
+        // document.body.appendChild(a);
+        // a.click();
+
+        // // Clean up
+        // document.body.removeChild(a);
+        // URL.revokeObjectURL(url);
     });
 });
